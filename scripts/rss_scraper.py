@@ -7,12 +7,46 @@ import yaml
 from datetime import datetime, timedelta
 import sys
 from typing import List, Dict
+import re
 
 
 def load_config(config_path: str = "data/sources.yml") -> dict:
     """Load configuration from YAML file"""
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
+
+
+def clean_html(text: str) -> str:
+    """Remove HTML tags from text"""
+    if not text:
+        return ""
+    # Remove HTML tags
+    clean = re.sub('<[^<]+?>', '', text)
+    # Remove extra whitespace
+    clean = re.sub(r'\s+', ' ', clean)
+    return clean.strip()
+
+
+def extract_tags(text: str) -> List[str]:
+    """Extract relevant DevOps keywords/tags from text"""
+    devops_keywords = [
+        'kubernetes', 'docker', 'terraform', 'ansible', 'jenkins',
+        'gitlab', 'github', 'ci/cd', 'devops', 'cloud', 'aws', 'azure',
+        'gcp', 'monitoring', 'observability', 'prometheus', 'grafana',
+        'gitops', 'argocd', 'helm', 'containerization', 'microservices',
+        'infrastructure', 'automation', 'deployment', 'pipeline',
+        'security', 'devsecops', 'sre', 'reliability'
+    ]
+    
+    text_lower = text.lower()
+    found_tags = [keyword for keyword in devops_keywords if keyword in text_lower]
+    return list(set(found_tags))[:5]  # Return up to 5 unique tags
+
+
+def estimate_reading_time(text: str) -> int:
+    """Estimate reading time in minutes (avg 200 words/min)"""
+    word_count = len(text.split())
+    return max(1, round(word_count / 200))
 
 
 def fetch_rss_feeds(feeds: List[Dict], days_back: int = 1) -> List[Dict]:
@@ -39,6 +73,23 @@ def fetch_rss_feeds(feeds: List[Dict], days_back: int = 1) -> List[Dict]:
                 if pub_date and pub_date < cutoff_date:
                     continue
 
+                # Get full content or summary
+                content = entry.get('content', [{}])[0].get('value', '') if 'content' in entry else entry.get('summary', '')
+                # Clean HTML from content
+                content = clean_html(content)
+                summary_text = content[:500] if content else ''
+                if len(content) > 500:
+                    summary_text += '...'
+                
+                # Extract author
+                author = entry.get('author', '')
+                if not author and 'authors' in entry and entry.authors:
+                    author = entry.authors[0].get('name', '')
+                
+                # Extract tags
+                full_text = f"{entry.get('title', '')} {content}"
+                tags = extract_tags(full_text)
+                
                 article = {
                     'title': entry.get('title', 'No title'),
                     'link': entry.get('link', ''),
@@ -47,8 +98,10 @@ def fetch_rss_feeds(feeds: List[Dict], days_back: int = 1) -> List[Dict]:
                     'date': pub_date.strftime(
                         '%Y-%m-%d %H:%M') if pub_date else 'Unknown',
                     'date_obj': pub_date if pub_date else datetime.min,
-                    'summary': entry.get('summary', '')[:200] + '...'
-                    if entry.get('summary') else ''
+                    'summary': summary_text,
+                    'author': author,
+                    'tags': tags,
+                    'reading_time': estimate_reading_time(content)
                 }
                 articles.append(article)
 
@@ -68,6 +121,23 @@ def generate_markdown(articles: List[Dict], title: str) -> str:
         md += "No new articles found.\n"
         return md
 
+    # Add summary statistics
+    md += f"📊 **Total Articles:** {len(articles)} | "
+    categories = set(article['category'] for article in articles)
+    md += f"**Categories:** {len(categories)}\n\n"
+    
+    # Add top tags section
+    all_tags = {}
+    for article in articles:
+        for tag in article.get('tags', []):
+            all_tags[tag] = all_tags.get(tag, 0) + 1
+    
+    if all_tags:
+        top_tags = sorted(all_tags.items(), key=lambda x: x[1], reverse=True)[:8]
+        md += "🏷️ **Trending Topics:** "
+        md += " | ".join([f"{tag} ({count})" for tag, count in top_tags])
+        md += "\n\n---\n\n"
+
     # Group by category
     by_category = {}
     for article in articles:
@@ -79,11 +149,28 @@ def generate_markdown(articles: List[Dict], title: str) -> str:
     # Generate markdown by category
     for category, items in sorted(by_category.items()):
         md += f"## {category.title()}\n\n"
+        md += f"*{len(items)} article(s)*\n\n"
+        
         for item in items:
-            md += f"### [{item['title']}]({item['link']})\n"
-            md += f"**Source:** {item['source']} | **Date:** {item['date']}\n\n"
+            md += f"### [{item['title']}]({item['link']})\n\n"
+            
+            # Metadata line
+            metadata_parts = [f"**Source:** {item['source']}"]
+            if item.get('author'):
+                metadata_parts.append(f"**Author:** {item['author']}")
+            metadata_parts.append(f"**Date:** {item['date']}")
+            if item.get('reading_time', 0) > 0:
+                metadata_parts.append(f"**Reading Time:** ~{item['reading_time']} min")
+            md += " | ".join(metadata_parts) + "\n\n"
+            
+            # Tags
+            if item.get('tags'):
+                md += f"🏷️ {', '.join(item['tags'])}\n\n"
+            
+            # Summary
             if item['summary']:
                 md += f"{item['summary']}\n\n"
+            
             md += "---\n\n"
 
     return md

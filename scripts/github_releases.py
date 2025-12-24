@@ -15,6 +15,58 @@ def load_config(config_path: str = "data/sources.yml") -> dict:
         return yaml.safe_load(f)
 
 
+def extract_changelog_highlights(body: str) -> Dict[str, List[str]]:
+    """Extract key sections from release notes"""
+    highlights = {
+        'breaking': [],
+        'features': [],
+        'fixes': [],
+        'security': []
+    }
+    
+    if not body:
+        return highlights
+    
+    body_lower = body.lower()
+    lines = body.split('\n')
+    
+    # Look for breaking changes
+    breaking_keywords = ['breaking', 'breaking change', 'breaking changes', '⚠️', '🚨']
+    for line in lines[:30]:  # Check first 30 lines
+        line_lower = line.lower()
+        if any(keyword in line_lower for keyword in breaking_keywords):
+            highlights['breaking'].append(line.strip('*- #'))
+    
+    # Look for security updates
+    security_keywords = ['security', 'vulnerability', 'cve', 'patch']
+    for line in lines[:30]:
+        line_lower = line.lower()
+        if any(keyword in line_lower for keyword in security_keywords):
+            highlights['security'].append(line.strip('*- #'))
+    
+    # Look for new features (basic detection)
+    feature_keywords = ['feature', 'add', 'new', '✨', '🎉']
+    for line in lines[:20]:
+        line_lower = line.lower()
+        if any(keyword in line_lower for keyword in feature_keywords) and len(line) > 10:
+            if line not in highlights['breaking'] and line not in highlights['security']:
+                highlights['features'].append(line.strip('*- #'))
+    
+    # Look for fixes
+    fix_keywords = ['fix', 'bug', 'resolve', '🐛']
+    for line in lines[:20]:
+        line_lower = line.lower()
+        if any(keyword in line_lower for keyword in fix_keywords) and len(line) > 10:
+            if line not in highlights['breaking'] and line not in highlights['security'] and line not in highlights['features']:
+                highlights['fixes'].append(line.strip('*- #'))
+    
+    # Limit each section
+    for key in highlights:
+        highlights[key] = highlights[key][:3]
+    
+    return highlights
+
+
 def fetch_github_releases(repos: List[Dict], days_back: int = 1) -> List[Dict]:
     """Fetch latest releases from GitHub repositories"""
     releases = []
@@ -52,6 +104,14 @@ def fetch_github_releases(repos: List[Dict], days_back: int = 1) -> List[Dict]:
                 if published_at < cutoff_date:
                     continue
 
+                body = release.get('body', '')
+                body_preview = body[:600] if body else ''
+                if len(body) > 600:
+                    body_preview += '...'
+                
+                # Extract highlights
+                highlights = extract_changelog_highlights(body)
+                
                 release_info = {
                     'name': repo_config['name'],
                     'repo': repo,
@@ -63,8 +123,9 @@ def fetch_github_releases(repos: List[Dict], days_back: int = 1) -> List[Dict]:
                     'date_obj': published_at,
                     'category': repo_config['category'],
                     'prerelease': release.get('prerelease', False),
-                    'body': release.get('body', '')[:300] + '...'
-                    if release.get('body') else ''
+                    'body': body_preview,
+                    'highlights': highlights,
+                    'assets_count': len(release.get('assets', []))
                 }
                 releases.append(release_info)
 
@@ -84,6 +145,29 @@ def generate_markdown(releases: List[Dict], title: str) -> str:
         md += "No new releases found.\n"
         return md
 
+    # Add summary statistics
+    md += f"📦 **Total Releases:** {len(releases)} | "
+    categories = set(release['category'] for release in releases)
+    md += f"**Categories:** {len(categories)}\n\n"
+    
+    # Count pre-releases and breaking changes
+    prerelease_count = sum(1 for r in releases if r.get('prerelease'))
+    breaking_count = sum(1 for r in releases if r.get('highlights', {}).get('breaking'))
+    security_count = sum(1 for r in releases if r.get('highlights', {}).get('security'))
+    
+    indicators = []
+    if prerelease_count > 0:
+        indicators.append(f"⚠️ {prerelease_count} pre-release(s)")
+    if breaking_count > 0:
+        indicators.append(f"🚨 {breaking_count} with breaking changes")
+    if security_count > 0:
+        indicators.append(f"🔒 {security_count} with security updates")
+    
+    if indicators:
+        md += " | ".join(indicators) + "\n\n"
+    
+    md += "---\n\n"
+
     # Group by category
     by_category = {}
     for release in releases:
@@ -95,13 +179,56 @@ def generate_markdown(releases: List[Dict], title: str) -> str:
     # Generate markdown by category
     for category, items in sorted(by_category.items()):
         md += f"## {category.title()}\n\n"
+        md += f"*{len(items)} release(s)*\n\n"
+        
         for item in items:
-            prerelease_tag = " (Pre-release)" if item['prerelease'] else ""
-            md += f"### {item['name']} {item['version']}{prerelease_tag}\n"
-            md += f"**Repository:** {item['repo']} | **Date:** {item['date']}\n\n"
+            prerelease_tag = " ⚠️ (Pre-release)" if item['prerelease'] else ""
+            md += f"### {item['name']} {item['version']}{prerelease_tag}\n\n"
+            
+            # Metadata
+            md += f"**Repository:** {item['repo']} | **Date:** {item['date']}"
+            if item.get('assets_count', 0) > 0:
+                md += f" | **Assets:** {item['assets_count']}"
+            md += "\n\n"
+            
             md += f"[View Release]({item['url']})\n\n"
-            if item['body']:
+            
+            # Highlights section
+            highlights = item.get('highlights', {})
+            has_highlights = any(highlights.values())
+            
+            if has_highlights:
+                md += "#### 📌 Key Highlights\n\n"
+                
+                if highlights.get('breaking'):
+                    md += "🚨 **Breaking Changes:**\n"
+                    for change in highlights['breaking'][:2]:
+                        md += f"- {change}\n"
+                    md += "\n"
+                
+                if highlights.get('security'):
+                    md += "🔒 **Security Updates:**\n"
+                    for update in highlights['security'][:2]:
+                        md += f"- {update}\n"
+                    md += "\n"
+                
+                if highlights.get('features'):
+                    md += "✨ **New Features:**\n"
+                    for feature in highlights['features'][:2]:
+                        md += f"- {feature}\n"
+                    md += "\n"
+                
+                if highlights.get('fixes'):
+                    md += "🐛 **Bug Fixes:**\n"
+                    for fix in highlights['fixes'][:2]:
+                        md += f"- {fix}\n"
+                    md += "\n"
+            
+            # Body preview
+            if item['body'] and not has_highlights:
+                md += "#### Release Notes\n\n"
                 md += f"{item['body']}\n\n"
+            
             md += "---\n\n"
 
     return md

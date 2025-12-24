@@ -15,6 +15,55 @@ def load_config(config_path: str = "data/sources.yml") -> dict:
         return yaml.safe_load(f)
 
 
+def fetch_story_details(story_id: str) -> Dict:
+    """Fetch additional details about a story including top comment"""
+    try:
+        url = f"https://hn.algolia.com/api/v1/items/{story_id}"
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Get top comment
+        top_comment = None
+        if data.get('children') and len(data['children']) > 0:
+            first_child = data['children'][0]
+            if first_child.get('text'):
+                # Clean HTML tags from comment
+                import re
+                comment_text = re.sub('<[^<]+?>', '', first_child['text'])
+                top_comment = comment_text[:300] if comment_text else None
+        
+        return {
+            'top_comment': top_comment,
+            'num_comments': data.get('children_count', 0)
+        }
+    except Exception:
+        return {'top_comment': None, 'num_comments': 0}
+
+
+def categorize_story(title: str, url: str) -> List[str]:
+    """Categorize story by DevOps topics"""
+    categories = []
+    text = f"{title} {url}".lower()
+    
+    category_keywords = {
+        'kubernetes': ['kubernetes', 'k8s'],
+        'containers': ['docker', 'container', 'podman'],
+        'ci/cd': ['ci/cd', 'jenkins', 'gitlab', 'github actions', 'pipeline'],
+        'iac': ['terraform', 'ansible', 'pulumi', 'cloudformation'],
+        'monitoring': ['monitoring', 'observability', 'prometheus', 'grafana', 'datadog'],
+        'cloud': ['aws', 'azure', 'gcp', 'cloud'],
+        'gitops': ['gitops', 'argocd', 'flux'],
+        'security': ['security', 'devsecops', 'vulnerability']
+    }
+    
+    for category, keywords in category_keywords.items():
+        if any(keyword in text for keyword in keywords):
+            categories.append(category)
+    
+    return categories if categories else ['general']
+
+
 def fetch_hacker_news(
         keywords: List[str],
         min_score: int = 50,
@@ -52,6 +101,12 @@ def fetch_hacker_news(
                 if created_at < cutoff_date:
                     continue
 
+                # Calculate story age in hours
+                age_hours = (datetime.now().replace(tzinfo=created_at.tzinfo) - created_at).total_seconds() / 3600
+                
+                # Categorize story
+                categories = categorize_story(hit.get('title', ''), hit.get('url', ''))
+                
                 story = {
                     'title': hit.get('title', 'No title'),
                     'url': hit.get(
@@ -67,7 +122,10 @@ def fetch_hacker_news(
                     'author': hit.get('author', 'Unknown'),
                     'num_comments': hit.get('num_comments', 0),
                     'date': created_at.strftime('%Y-%m-%d %H:%M'),
-                    'keyword': keyword
+                    'keyword': keyword,
+                    'age_hours': int(age_hours),
+                    'categories': categories,
+                    'objectID': hit['objectID']
                 }
 
                 # Avoid duplicates
@@ -89,16 +147,63 @@ def generate_markdown(stories: List[Dict], title: str) -> str:
         md += "No relevant stories found.\n"
         return md
 
-    md += "## Top Stories\n\n"
-
+    # Add summary statistics
+    md += f"💬 **Total Stories:** {len(stories)} | "
+    total_points = sum(s['points'] for s in stories)
+    total_comments = sum(s['num_comments'] for s in stories)
+    md += f"**Total Points:** {total_points} | **Total Comments:** {total_comments}\n\n"
+    
+    # Categorize stories
+    all_categories = {}
     for story in stories:
-        md += f"### [{story['title']}]({story['url']})\n"
-        md += f"**Points:** {story['points']} | "
-        md += f"**Comments:** {story['num_comments']} | "
-        md += f"**Author:** {story['author']} | "
-        md += f"**Date:** {story['date']}\n\n"
-        md += f"[Discussion on HN]({story['hn_url']})\n\n"
-        md += "---\n\n"
+        for category in story.get('categories', ['general']):
+            all_categories[category] = all_categories.get(category, 0) + 1
+    
+    if all_categories:
+        md += "📂 **Topics:** "
+        md += " | ".join([f"{cat.title()} ({count})" for cat, count in sorted(all_categories.items(), key=lambda x: x[1], reverse=True)])
+        md += "\n\n"
+    
+    md += "---\n\n"
+    
+    # Group stories by category
+    by_category = {}
+    for story in stories:
+        for category in story.get('categories', ['general']):
+            if category not in by_category:
+                by_category[category] = []
+            if story not in by_category[category]:
+                by_category[category].append(story)
+
+    # Generate markdown by category
+    for category in sorted(by_category.keys()):
+        items = by_category[category]
+        md += f"## {category.upper()}\n\n"
+        md += f"*{len(items)} story/stories*\n\n"
+        
+        for story in items:
+            md += f"### [{story['title']}]({story['url']})\n\n"
+            
+            # Metrics bar
+            md += f"👤 **Author:** {story['author']} | "
+            md += f"⬆️ **Points:** {story['points']} | "
+            md += f"💬 **Comments:** {story['num_comments']} | "
+            md += f"📅 **Date:** {story['date']}"
+            
+            # Add trending indicator for recent popular stories
+            if story['age_hours'] < 24 and story['points'] > 100:
+                md += " | 🔥 **Trending**"
+            
+            md += "\n\n"
+            
+            # Categories
+            if len(story.get('categories', [])) > 1:
+                other_cats = [c for c in story['categories'] if c != category]
+                if other_cats:
+                    md += f"🏷️ Also in: {', '.join(other_cats)}\n\n"
+            
+            md += f"[Discussion on Hacker News]({story['hn_url']})\n\n"
+            md += "---\n\n"
 
     return md
 

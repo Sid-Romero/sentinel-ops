@@ -16,11 +16,18 @@ Sentinel-Ops is an automated monitoring system that tracks the latest developmen
 - **Tri-Daily Digest**: Automated reports three times per day at 6:00 AM, 2:00 PM, and 10:00 PM UTC
 - **Daily Digest**: Automated daily reports at 6:00 AM UTC
 - **Weekly Digest**: Comprehensive weekly summaries every Monday at 6:00 AM UTC
-- **RSS Feed Monitoring**: Tracks DevOps Weekly, CNCF Blog, and HashiCorp Blog
-- **GitHub Releases**: Monitors releases for Kubernetes, Terraform, Docker, Grafana, and ArgoCD
+- **Enhanced Content Quality**:
+  - Executive summaries with key statistics and alerts
+  - Trending topics and tags extraction
+  - Extended content previews (500+ characters for RSS, 600+ for releases)
+  - Author information and reading time estimates
+  - Changelog highlights extraction (breaking changes, security updates, features, fixes)
+  - Categorized Hacker News discussions with trending indicators
+- **RSS Feed Monitoring**: Tracks DevOps Weekly, CNCF Blog, HashiCorp Blog, The New Stack, DevOps.com, Kubernetes Blog, and Docker Blog
+- **GitHub Releases**: Monitors releases for Kubernetes, Terraform, Docker, Grafana, ArgoCD, Prometheus, Helm, and Ansible
 - **Hacker News Integration**: Curates top DevOps-related stories with high engagement
 - **Automated Commits**: Results are automatically committed to the repository
-- **Markdown Output**: All reports are generated in clean, readable Markdown format
+- **Markdown Output**: All reports are generated in clean, readable Markdown format with emojis and visual indicators
 
 ## Structure
 
@@ -120,9 +127,19 @@ Reports are saved in the `output/` directory:
 - `output/weekly/digest-YYYY-MM-DD.md` - Weekly reports
 
 Each report includes:
-- RSS feed articles organized by category
-- Latest GitHub releases for monitored tools
-- Top Hacker News stories related to DevOps
+- Executive summary with activity overview and important alerts
+- RSS feed articles organized by category with:
+  - Trending topics and tags
+  - Author information and reading time estimates
+  - Extended content previews
+- Latest GitHub releases for monitored tools with:
+  - Changelog highlights (breaking changes, security updates, features, fixes)
+  - Asset information
+  - Visual indicators for pre-releases and important updates
+- Top Hacker News stories related to DevOps with:
+  - Categorization by topic
+  - Trending indicators
+  - Engagement metrics
 
 ## Monitored Sources
 
@@ -130,6 +147,10 @@ Each report includes:
 - DevOps Weekly Newsletter
 - CNCF Blog
 - HashiCorp Blog
+- The New Stack
+- DevOps.com
+- Kubernetes Blog
+- Docker Blog
 
 ### GitHub Projects
 - Kubernetes
@@ -137,6 +158,9 @@ Each report includes:
 - Docker CLI
 - Grafana
 - ArgoCD
+- Prometheus
+- Helm
+- Ansible
 
 ### Hacker News Topics
 - DevOps
@@ -146,6 +170,8 @@ Each report includes:
 - CI/CD
 - GitOps
 - Observability
+- Infrastructure as Code
+- Site Reliability Engineering
 
 ## Contributing
 
