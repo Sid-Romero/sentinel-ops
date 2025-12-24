@@ -1,0 +1,47 @@
+---
+name: Weekly DevOps Digest
+
+"on":
+  schedule:
+    # Run every Monday at 6:00 AM UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch: {}  # Allow manual triggering
+
+permissions:
+  contents: write
+
+jobs:
+  generate-weekly-digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate weekly digest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/generate_digest.py --weekly
+
+      - name: Commit and push results
+        run: |
+          git config --local user.email \
+            "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add output/weekly/
+          git diff --staged --quiet || \
+            git commit -m "Weekly DevOps digest - $(date +'%Y-%m-%d')"
+          git push
