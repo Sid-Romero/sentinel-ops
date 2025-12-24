@@ -74,7 +74,11 @@ def fetch_rss_feeds(feeds: List[Dict], days_back: int = 1) -> List[Dict]:
                     continue
 
                 # Get full content or summary
-                content = entry.get('content', [{}])[0].get('value', '') if 'content' in entry else entry.get('summary', '')
+                if 'content' in entry and entry.content:
+                    content = entry.content[0].get('value', '')
+                else:
+                    content = entry.get('summary', '')
+                
                 # Clean HTML from content
                 content = clean_html(content)
                 summary_text = content[:500] if content else ''

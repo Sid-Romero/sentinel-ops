@@ -4,6 +4,7 @@ Hacker News Scraper for DevOps topics
 """
 import requests
 import yaml
+import re
 from datetime import datetime, timedelta
 import sys
 from typing import List, Dict

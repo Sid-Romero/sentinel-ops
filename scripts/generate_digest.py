@@ -23,7 +23,7 @@ def extract_summary_stats(content: str) -> dict:
         'security_updates': 0
     }
     
-    # Extract RSS stats
+    # Extract RSS stats - using more specific regex to avoid false positives
     rss_match = re.search(r'📊 \*\*Total Articles:\*\* (\d+) \| \*\*Categories:\*\* (\d+)', content)
     if rss_match:
         stats['rss_articles'] = int(rss_match.group(1))
@@ -35,9 +35,15 @@ def extract_summary_stats(content: str) -> dict:
         stats['releases'] = int(release_match.group(1))
         stats['release_categories'] = int(release_match.group(2))
     
-    # Count breaking changes
-    stats['breaking_changes'] = content.count('with breaking changes')
-    stats['security_updates'] = content.count('with security updates')
+    # Count breaking changes - more specific pattern
+    breaking_pattern = re.findall(r'(\d+) with breaking changes', content)
+    if breaking_pattern:
+        stats['breaking_changes'] = int(breaking_pattern[0])
+    
+    # Count security updates - more specific pattern
+    security_pattern = re.findall(r'(\d+) with security updates', content)
+    if security_pattern:
+        stats['security_updates'] = int(security_pattern[0])
     
     # Extract HN stats
     hn_match = re.search(r'💬 \*\*Total Stories:\*\* (\d+) \| \*\*Total Points:\*\* (\d+) \| \*\*Total Comments:\*\* (\d+)', content)

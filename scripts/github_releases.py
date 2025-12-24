@@ -29,36 +29,39 @@ def extract_changelog_highlights(body: str) -> Dict[str, List[str]]:
     
     body_lower = body.lower()
     lines = body.split('\n')
+    processed_lines = set()  # Track processed lines to avoid duplicates
     
     # Look for breaking changes
     breaking_keywords = ['breaking', 'breaking change', 'breaking changes', '⚠️', '🚨']
     for line in lines[:30]:  # Check first 30 lines
         line_lower = line.lower()
-        if any(keyword in line_lower for keyword in breaking_keywords):
+        if any(keyword in line_lower for keyword in breaking_keywords) and line not in processed_lines:
             highlights['breaking'].append(line.strip('*- #'))
+            processed_lines.add(line)
     
     # Look for security updates
     security_keywords = ['security', 'vulnerability', 'cve', 'patch']
     for line in lines[:30]:
         line_lower = line.lower()
-        if any(keyword in line_lower for keyword in security_keywords):
+        if any(keyword in line_lower for keyword in security_keywords) and line not in processed_lines:
             highlights['security'].append(line.strip('*- #'))
+            processed_lines.add(line)
     
     # Look for new features (basic detection)
     feature_keywords = ['feature', 'add', 'new', '✨', '🎉']
     for line in lines[:20]:
         line_lower = line.lower()
-        if any(keyword in line_lower for keyword in feature_keywords) and len(line) > 10:
-            if line not in highlights['breaking'] and line not in highlights['security']:
-                highlights['features'].append(line.strip('*- #'))
+        if any(keyword in line_lower for keyword in feature_keywords) and len(line) > 10 and line not in processed_lines:
+            highlights['features'].append(line.strip('*- #'))
+            processed_lines.add(line)
     
     # Look for fixes
     fix_keywords = ['fix', 'bug', 'resolve', '🐛']
     for line in lines[:20]:
         line_lower = line.lower()
-        if any(keyword in line_lower for keyword in fix_keywords) and len(line) > 10:
-            if line not in highlights['breaking'] and line not in highlights['security'] and line not in highlights['features']:
-                highlights['fixes'].append(line.strip('*- #'))
+        if any(keyword in line_lower for keyword in fix_keywords) and len(line) > 10 and line not in processed_lines:
+            highlights['fixes'].append(line.strip('*- #'))
+            processed_lines.add(line)
     
     # Limit each section
     for key in highlights:
