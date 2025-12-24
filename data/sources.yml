@@ -1,0 +1,55 @@
+---
+# RSS Feeds Configuration
+rss_feeds:
+  - name: "DevOps Weekly"
+    url: "https://www.devopsweekly.com/rss"
+    category: "newsletter"
+  
+  - name: "CNCF Blog"
+    url: "https://www.cncf.io/feed/"
+    category: "cloud-native"
+  
+  - name: "HashiCorp Blog"
+    url: "https://www.hashicorp.com/blog/feed.xml"
+    category: "infrastructure"
+
+# GitHub Releases to Monitor
+github_releases:
+  - repo: "kubernetes/kubernetes"
+    name: "Kubernetes"
+    category: "orchestration"
+  
+  - repo: "hashicorp/terraform"
+    name: "Terraform"
+    category: "iac"
+  
+  - repo: "docker/cli"
+    name: "Docker CLI"
+    category: "containers"
+  
+  - repo: "grafana/grafana"
+    name: "Grafana"
+    category: "monitoring"
+  
+  - repo: "argoproj/argo-cd"
+    name: "ArgoCD"
+    category: "gitops"
+
+# Hacker News Configuration
+hacker_news:
+  keywords:
+    - "devops"
+    - "kubernetes"
+    - "terraform"
+    - "docker"
+    - "ci/cd"
+    - "gitops"
+    - "observability"
+  min_score: 50
+  max_items: 10
+
+# Output Configuration
+output:
+  daily_path: "output/daily"
+  weekly_path: "output/weekly"
+  date_format: "%Y-%m-%d"
