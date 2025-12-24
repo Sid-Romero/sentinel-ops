@@ -88,14 +88,10 @@ def main():
     report = generate_combined_report(report_type)
 
     # Determine output path
-    if report_type == "tri-daily":
-        # For tri-daily, include time in filename
-        date_str = datetime.now().strftime('%Y-%m-%d-%H%M')
-        filename = f"digest-{date_str}.md"
-    else:
-        date_str = datetime.now().strftime('%Y-%m-%d')
-        filename = f"digest-{date_str}.md"
-    
+    # For tri-daily, include time in filename
+    date_format = '%Y-%m-%d-%H%M' if report_type == "tri-daily" else '%Y-%m-%d'
+    date_str = datetime.now().strftime(date_format)
+    filename = f"digest-{date_str}.md"
     output_dir = f"output/{report_type}"
 
     # Save report
