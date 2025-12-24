@@ -46,16 +46,15 @@ def fetch_rss_feeds(feeds: List[Dict], days_back: int = 1) -> List[Dict]:
                     'category': feed_config['category'],
                     'date': pub_date.strftime(
                         '%Y-%m-%d %H:%M') if pub_date else 'Unknown',
+                    'date_obj': pub_date if pub_date else datetime.min,
                     'summary': entry.get('summary', '')[:200] + '...'
                     if entry.get('summary') else ''
                 }
                 articles.append(article)
 
         except Exception as e:
-            print(
-                f"Error fetching {
-                    feed_config['name']}: {e}",
-                file=sys.stderr)
+            print(f"Error fetching {feed_config['name']}: {e}",
+                  file=sys.stderr)
 
     return articles
 
@@ -107,7 +106,7 @@ def main():
     articles = fetch_rss_feeds(config['rss_feeds'], days_back)
 
     # Sort by date (newest first)
-    articles.sort(key=lambda x: x['date'], reverse=True)
+    articles.sort(key=lambda x: x['date_obj'], reverse=True)
 
     # Generate markdown
     title = f"DevOps RSS Feed Digest - {report_type.title()}"

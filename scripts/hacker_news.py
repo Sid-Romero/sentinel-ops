@@ -26,7 +26,7 @@ def fetch_hacker_news(
 
     try:
         # Use Algolia HN Search API
-        base_url = "http://hn.algolia.com/api/v1/search"
+        base_url = "https://hn.algolia.com/api/v1/search"
 
         for keyword in keywords:
             print(f"Searching Hacker News for '{keyword}'...", file=sys.stderr)

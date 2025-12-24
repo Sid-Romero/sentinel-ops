@@ -60,6 +60,7 @@ def fetch_github_releases(repos: List[Dict], days_back: int = 1) -> List[Dict]:
                         'name', release.get('tag_name', 'No title')),
                     'url': release.get('html_url', ''),
                     'date': published_at.strftime('%Y-%m-%d %H:%M'),
+                    'date_obj': published_at,
                     'category': repo_config['category'],
                     'prerelease': release.get('prerelease', False),
                     'body': release.get('body', '')[:300] + '...'
@@ -68,10 +69,8 @@ def fetch_github_releases(repos: List[Dict], days_back: int = 1) -> List[Dict]:
                 releases.append(release_info)
 
         except Exception as e:
-            print(
-                f"Error fetching {
-                    repo_config['repo']}: {e}",
-                file=sys.stderr)
+            print(f"Error fetching {repo_config['repo']}: {e}",
+                  file=sys.stderr)
 
     return releases
 
@@ -125,7 +124,7 @@ def main():
     releases = fetch_github_releases(config['github_releases'], days_back)
 
     # Sort by date (newest first)
-    releases.sort(key=lambda x: x['date'], reverse=True)
+    releases.sort(key=lambda x: x['date_obj'], reverse=True)
 
     # Generate markdown
     title = f"DevOps GitHub Releases - {report_type.title()}"
