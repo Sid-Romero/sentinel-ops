@@ -1,5 +1,6 @@
 # Sentinel-Ops
 
+[![Tri-Daily Digest](https://github.com/Sid-Romero/sentinel-ops/actions/workflows/tri-daily-digest.yml/badge.svg)](https://github.com/Sid-Romero/sentinel-ops/actions/workflows/tri-daily-digest.yml)
 [![Daily Digest](https://github.com/Sid-Romero/sentinel-ops/actions/workflows/daily-digest.yml/badge.svg)](https://github.com/Sid-Romero/sentinel-ops/actions/workflows/daily-digest.yml)
 [![Weekly Digest](https://github.com/Sid-Romero/sentinel-ops/actions/workflows/weekly-digest.yml/badge.svg)](https://github.com/Sid-Romero/sentinel-ops/actions/workflows/weekly-digest.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -8,10 +9,11 @@ Automated DevOps monitoring bot that aggregates news, releases, and discussions 
 
 ## Overview
 
-Sentinel-Ops is an automated monitoring system that tracks the latest developments in the DevOps ecosystem. It collects information from RSS feeds, GitHub releases, and Hacker News, then generates daily and weekly digest reports in Markdown format.
+Sentinel-Ops is an automated monitoring system that tracks the latest developments in the DevOps ecosystem. It collects information from RSS feeds, GitHub releases, and Hacker News, then generates tri-daily, daily, and weekly digest reports in Markdown format.
 
 ## Features
 
+- **Tri-Daily Digest**: Automated reports three times per day at 6:00 AM, 2:00 PM, and 10:00 PM UTC
 - **Daily Digest**: Automated daily reports at 6:00 AM UTC
 - **Weekly Digest**: Comprehensive weekly summaries every Monday at 6:00 AM UTC
 - **RSS Feed Monitoring**: Tracks DevOps Weekly, CNCF Blog, and HashiCorp Blog
@@ -26,20 +28,22 @@ Sentinel-Ops is an automated monitoring system that tracks the latest developmen
 sentinel-ops/
 ├── .github/
 │   └── workflows/
-│       ├── daily-digest.yml    # Daily automation workflow
-│       └── weekly-digest.yml   # Weekly automation workflow
+│       ├── tri-daily-digest.yml # Tri-daily automation workflow (3x/day)
+│       ├── daily-digest.yml     # Daily automation workflow
+│       └── weekly-digest.yml    # Weekly automation workflow
 ├── scripts/
-│   ├── rss_scraper.py         # RSS feed scraper
-│   ├── github_releases.py     # GitHub releases monitor
-│   ├── hacker_news.py         # Hacker News scraper
-│   └── generate_digest.py     # Main aggregator script
+│   ├── rss_scraper.py          # RSS feed scraper
+│   ├── github_releases.py      # GitHub releases monitor
+│   ├── hacker_news.py          # Hacker News scraper
+│   └── generate_digest.py      # Main aggregator script
 ├── data/
-│   └── sources.yml            # Configuration for all sources
+│   └── sources.yml             # Configuration for all sources
 ├── output/
-│   ├── daily/                 # Daily digest reports
-│   └── weekly/                # Weekly digest reports
-├── requirements.txt           # Python dependencies
-└── README.md                  # This file
+│   ├── tri-daily/              # Tri-daily digest reports (3x/day)
+│   ├── daily/                  # Daily digest reports
+│   └── weekly/                 # Weekly digest reports
+├── requirements.txt            # Python dependencies
+└── README.md                   # This file
 ```
 
 ## Configuration
@@ -53,6 +57,11 @@ The `data/sources.yml` file contains all configuration for monitored sources:
 ## Usage
 
 ### Manual Execution
+
+Generate a tri-daily digest:
+```bash
+python scripts/generate_digest.py --tri-daily
+```
 
 Generate a daily digest:
 ```bash
@@ -74,6 +83,7 @@ python scripts/hacker_news.py
 ### Automated Execution
 
 The GitHub Actions workflows run automatically:
+- **Tri-Daily**: Three times per day at 6:00 AM, 2:00 PM, and 10:00 PM UTC
 - **Daily**: Every day at 6:00 AM UTC
 - **Weekly**: Every Monday at 6:00 AM UTC
 
@@ -105,6 +115,7 @@ python scripts/generate_digest.py
 ## Output
 
 Reports are saved in the `output/` directory:
+- `output/tri-daily/digest-YYYY-MM-DD-HHMM.md` - Tri-daily reports (3 times per day)
 - `output/daily/digest-YYYY-MM-DD.md` - Daily reports
 - `output/weekly/digest-YYYY-MM-DD.md` - Weekly reports
 

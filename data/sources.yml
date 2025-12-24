@@ -50,6 +50,7 @@ hacker_news:
 
 # Output Configuration
 output:
+  tri_daily_path: "output/tri-daily"
   daily_path: "output/daily"
   weekly_path: "output/weekly"
   date_format: "%Y-%m-%d"

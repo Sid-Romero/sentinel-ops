@@ -78,16 +78,25 @@ def main():
     """Main execution function"""
     # Determine report type
     report_type = "daily"
-    if len(sys.argv) > 1 and sys.argv[1] == "--weekly":
-        report_type = "weekly"
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--weekly":
+            report_type = "weekly"
+        elif sys.argv[1] == "--tri-daily":
+            report_type = "tri-daily"
 
     # Generate report
     report = generate_combined_report(report_type)
 
     # Determine output path
-    date_str = datetime.now().strftime('%Y-%m-%d')
+    if report_type == "tri-daily":
+        # For tri-daily, include time in filename
+        date_str = datetime.now().strftime('%Y-%m-%d-%H%M')
+        filename = f"digest-{date_str}.md"
+    else:
+        date_str = datetime.now().strftime('%Y-%m-%d')
+        filename = f"digest-{date_str}.md"
+    
     output_dir = f"output/{report_type}"
-    filename = f"digest-{date_str}.md"
 
     # Save report
     save_report(report, output_dir, filename)
