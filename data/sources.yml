@@ -4,11 +4,11 @@ rss_feeds:
   - name: "DevOps Weekly"
     url: "https://www.devopsweekly.com/rss"
     category: "newsletter"
-  
+
   - name: "CNCF Blog"
     url: "https://www.cncf.io/feed/"
     category: "cloud-native"
-  
+
   - name: "HashiCorp Blog"
     url: "https://www.hashicorp.com/blog/feed.xml"
     category: "infrastructure"
@@ -18,19 +18,19 @@ github_releases:
   - repo: "kubernetes/kubernetes"
     name: "Kubernetes"
     category: "orchestration"
-  
+
   - repo: "hashicorp/terraform"
     name: "Terraform"
     category: "iac"
-  
+
   - repo: "docker/cli"
     name: "Docker CLI"
     category: "containers"
-  
+
   - repo: "grafana/grafana"
     name: "Grafana"
     category: "monitoring"
-  
+
   - repo: "argoproj/argo-cd"
     name: "ArgoCD"
     category: "gitops"
