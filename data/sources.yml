@@ -13,6 +13,22 @@ rss_feeds:
     url: "https://www.hashicorp.com/blog/feed.xml"
     category: "infrastructure"
 
+  - name: "The New Stack"
+    url: "https://thenewstack.io/feed/"
+    category: "news"
+
+  - name: "DevOps.com"
+    url: "https://devops.com/feed/"
+    category: "news"
+
+  - name: "Kubernetes Blog"
+    url: "https://kubernetes.io/feed.xml"
+    category: "orchestration"
+
+  - name: "Docker Blog"
+    url: "https://www.docker.com/blog/feed/"
+    category: "containers"
+
 # GitHub Releases to Monitor
 github_releases:
   - repo: "kubernetes/kubernetes"
@@ -35,6 +51,18 @@ github_releases:
     name: "ArgoCD"
     category: "gitops"
 
+  - repo: "prometheus/prometheus"
+    name: "Prometheus"
+    category: "monitoring"
+
+  - repo: "helm/helm"
+    name: "Helm"
+    category: "orchestration"
+
+  - repo: "ansible/ansible"
+    name: "Ansible"
+    category: "iac"
+
 # Hacker News Configuration
 hacker_news:
   keywords:
@@ -45,8 +73,10 @@ hacker_news:
     - "ci/cd"
     - "gitops"
     - "observability"
-  min_score: 50
-  max_items: 10
+    - "infrastructure as code"
+    - "site reliability"
+  min_score: 30
+  max_items: 15
 
 # Output Configuration
 output:

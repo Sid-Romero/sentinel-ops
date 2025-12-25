@@ -6,6 +6,80 @@ import sys
 import subprocess
 from datetime import datetime
 from pathlib import Path
+import re
+
+
+def extract_summary_stats(content: str) -> dict:
+    """Extract statistics from scraper outputs"""
+    stats = {
+        'rss_articles': 0,
+        'rss_categories': 0,
+        'releases': 0,
+        'release_categories': 0,
+        'hn_stories': 0,
+        'hn_points': 0,
+        'hn_comments': 0,
+        'breaking_changes': 0,
+        'security_updates': 0
+    }
+    
+    # Extract RSS stats - using more specific regex to avoid false positives
+    rss_match = re.search(r'📊 \*\*Total Articles:\*\* (\d+) \| \*\*Categories:\*\* (\d+)', content)
+    if rss_match:
+        stats['rss_articles'] = int(rss_match.group(1))
+        stats['rss_categories'] = int(rss_match.group(2))
+    
+    # Extract release stats
+    release_match = re.search(r'📦 \*\*Total Releases:\*\* (\d+) \| \*\*Categories:\*\* (\d+)', content)
+    if release_match:
+        stats['releases'] = int(release_match.group(1))
+        stats['release_categories'] = int(release_match.group(2))
+    
+    # Count breaking changes - more specific pattern
+    breaking_pattern = re.findall(r'(\d+) with breaking changes', content)
+    if breaking_pattern:
+        stats['breaking_changes'] = int(breaking_pattern[0])
+    
+    # Count security updates - more specific pattern
+    security_pattern = re.findall(r'(\d+) with security updates', content)
+    if security_pattern:
+        stats['security_updates'] = int(security_pattern[0])
+    
+    # Extract HN stats
+    hn_match = re.search(r'💬 \*\*Total Stories:\*\* (\d+) \| \*\*Total Points:\*\* (\d+) \| \*\*Total Comments:\*\* (\d+)', content)
+    if hn_match:
+        stats['hn_stories'] = int(hn_match.group(1))
+        stats['hn_points'] = int(hn_match.group(2))
+        stats['hn_comments'] = int(hn_match.group(3))
+    
+    return stats
+
+
+def generate_executive_summary(stats: dict, report_type: str) -> str:
+    """Generate an executive summary section"""
+    summary = "# 📋 Executive Summary\n\n"
+    summary += f"*{report_type.title()} DevOps Ecosystem Overview*\n\n"
+    
+    # Overall activity
+    total_items = stats['rss_articles'] + stats['releases'] + stats['hn_stories']
+    summary += f"## Activity Overview\n\n"
+    summary += f"- 📰 **{stats['rss_articles']}** new articles from RSS feeds across **{stats['rss_categories']}** categories\n"
+    summary += f"- 📦 **{stats['releases']}** new releases from monitored projects across **{stats['release_categories']}** categories\n"
+    summary += f"- 💬 **{stats['hn_stories']}** relevant Hacker News discussions with **{stats['hn_points']}** points and **{stats['hn_comments']}** comments\n"
+    summary += f"- 🎯 **{total_items}** total items tracked\n\n"
+    
+    # Important alerts
+    if stats['breaking_changes'] > 0 or stats['security_updates'] > 0:
+        summary += "## ⚠️ Important Alerts\n\n"
+        if stats['breaking_changes'] > 0:
+            summary += f"- 🚨 **{stats['breaking_changes']}** release(s) contain breaking changes - review before upgrading\n"
+        if stats['security_updates'] > 0:
+            summary += f"- 🔒 **{stats['security_updates']}** release(s) include security updates - consider upgrading\n"
+        summary += "\n"
+    
+    summary += "---\n\n"
+    
+    return summary
 
 
 def run_scraper(script_name: str, args: list = None) -> str:
@@ -34,28 +108,49 @@ def generate_combined_report(report_type: str = "daily") -> str:
 
     print(f"Generating {report_type} report...", file=sys.stderr)
 
-    # Header
-    report = f"# DevOps Monitoring Digest - {report_type.title()}\n\n"
-    report += f"*Generated on {datetime.now().strftime('%Y-%m-%d %H:%M UTC')}*\n\n"
-    report += "---\n\n"
-
-    # RSS Feeds
+    # Fetch all content first
     print("Fetching RSS feeds...", file=sys.stderr)
     rss_content = run_scraper("rss_scraper.py", args)
+    
+    print("Fetching GitHub releases...", file=sys.stderr)
+    releases_content = run_scraper("github_releases.py", args)
+    
+    print("Fetching Hacker News...", file=sys.stderr)
+    hn_content = run_scraper("hacker_news.py", args)
+    
+    # Combine all content for stats extraction
+    all_content = rss_content + "\n" + releases_content + "\n" + hn_content
+    
+    # Extract statistics
+    stats = extract_summary_stats(all_content)
+    
+    # Build final report
+    # Header
+    report = f"# 🚀 DevOps Monitoring Digest - {report_type.title()}\n\n"
+    report += f"*Generated on {datetime.now().strftime('%Y-%m-%d %H:%M UTC')}*\n\n"
+    report += "**Your comprehensive source for DevOps ecosystem updates and insights**\n\n"
+    report += "---\n\n"
+    
+    # Executive Summary
+    report += generate_executive_summary(stats, report_type)
+
+    # RSS Feeds
     report += rss_content + "\n\n"
 
     # GitHub Releases
-    print("Fetching GitHub releases...", file=sys.stderr)
-    releases_content = run_scraper("github_releases.py", args)
     report += releases_content + "\n\n"
 
     # Hacker News
-    print("Fetching Hacker News...", file=sys.stderr)
-    hn_content = run_scraper("hacker_news.py", args)
     report += hn_content + "\n\n"
 
     # Footer
     report += "---\n\n"
+    report += "## 💡 About This Digest\n\n"
+    report += "This automated report aggregates the latest DevOps news, tool releases, and community discussions to help you stay informed about the rapidly evolving DevOps ecosystem.\n\n"
+    report += "**Sources:**\n"
+    report += "- 📰 RSS Feeds: DevOps Weekly, CNCF Blog, HashiCorp Blog, The New Stack, DevOps.com, Kubernetes Blog, Docker Blog\n"
+    report += "- 📦 GitHub Releases: Kubernetes, Terraform, Docker, Grafana, ArgoCD, Prometheus, Helm, Ansible\n"
+    report += "- 💬 Hacker News: Curated DevOps discussions with high engagement\n\n"
     report += "*This report was automatically generated by Sentinel-Ops*\n"
 
     return report
